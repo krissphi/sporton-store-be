@@ -80,13 +80,44 @@ export const deleteProduct = async (
   res: Response,
 ): Promise<void> => {
   try {
-    const prodcut = await Product.findByIdAndDelete(req.params.id);
-    if (!prodcut) {
+    const product = await Product.findByIdAndDelete(req.params.id);
+    if (!product) {
       res.status(404).json({ message: "Product not found" });
       return;
     }
     res.status(200).json({ message: "Product deleted successfully" });
   } catch (error) {
     res.status(500).json({ message: "Error deleting product", error });
+  }
+};
+
+export const searchProducts = async (
+  req: Request,
+  res: Response,
+): Promise<void> => {
+  try {
+    console.log('Search endpoint hit!'); // Debug log
+    console.log('Query:', req.query.q); // Debug log
+    
+    const { q } = req.query;
+
+    if (!q || typeof q !== "string" || q.trim() === "") {
+      res.status(200).json([]);
+      return;
+    }
+
+    const products = await Product.find({
+      $or: [
+        { name: { $regex: q, $options: "i" } },
+        { description: { $regex: q, $options: "i" } },
+      ],
+    })
+      .populate("category")
+      .select("name description images price category stock")
+      .limit(10);
+
+    res.status(200).json(products);
+  } catch (error) {
+    res.status(500).json({ message: "Error searching products", error });
   }
 };
